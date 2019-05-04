@@ -112,9 +112,9 @@ class BinExpr(Node):
         self.right = right
 
 
-class BracExpr(Node):
-    def __init__(self, expr):
-        self.left = expr
+# class BracExpr(Node):
+#     def __init__(self, expr):
+#         self.left = expr
 
 
 class Condition(Node):

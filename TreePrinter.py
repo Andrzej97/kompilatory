@@ -206,13 +206,13 @@ class TreePrinter:
         return ret
 
 
-    @addToClass(AST.BracExpr)
-    def printTree(self):
-        global level
-        ret = ""
-        tmp = getIndent()
-        ret += str(self.left)
-        return ret
+    # @addToClass(AST.BracExpr)
+    # def printTree(self):
+    #     global level
+    #     ret = ""
+    #     tmp = getIndent()
+    #     ret += str(self.left)
+    #     return ret
 
 
     @addToClass(AST.BinExpr)

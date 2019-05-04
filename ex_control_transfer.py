@@ -64,3 +64,21 @@ for i = 1:N {
         print i, j;
     }
 }
+
+# binexpr:
+x = 0.0;
+y = "string";
+z = x + y;
+
+#condition:
+if(x > y){
+	x -= 0.0;
+}
+
+# matrix operation:
+A = [[0, 1], [2, 3]];
+B = [[0, 1], [2, 3], [4, 5]];
+C = A .+ B;
+
+D = zeros(5);
+C = A .+ D;
