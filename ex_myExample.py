@@ -82,3 +82,8 @@ C = A .+ B;
 
 D = zeros(5);
 C = A .+ D;
+
+x = 0;
+y = 0.2;
+z = "string";
+print x, y, z;
