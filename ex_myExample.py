@@ -87,3 +87,5 @@ x = 0;
 y = 0.2;
 z = "string";
 print x, y, z;
+
+# jakbym dal print A;, to wgl zle jest bo nie rozpoznaje typu A
