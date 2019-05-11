@@ -1,5 +1,11 @@
 #!/usr/bin/python
 
+# co jest jeszcze do poprawy:
+# popScope powinien usuwac odpowiednie pary  self.symbols
+# przyglądnąć się self.visitVariable, zeby to wszystko ujednolicic i upewnic sie, ze dziala
+# zrobić tak, żeby wszystkie przykłady Kuty działały
+# wszystie zbedne komentarze usunac
+
 from SymbolTable import SymbolTable
 import re
 import AST

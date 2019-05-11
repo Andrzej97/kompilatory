@@ -22,7 +22,7 @@ class SymbolTable(object):
             # print("i am in for")
             # print((name, i))
             # print(self.symbols.keys())
-            if (name, i) in self.symbols.keys():
+            if (name, i) in self.symbols.keys() and self.symbols[(name, i)] != "none":
                 # print("in if")
                 return self.symbols[(name, i)] 
         return "none"
@@ -44,7 +44,14 @@ class SymbolTable(object):
     #
 
     def popScope(self):
+        # print("elems before popScoe:")
+        # self.print_symbols()
+        for key in self.symbols.keys():
+            if key[1] == self.scope:
+                self.symbols[key] = "none"
         self.scope -= 1
+        # print("elems after popScoe:")
+        # self.print_symbols()
     #
 
     def pushLoop(self):
