@@ -187,6 +187,7 @@ class Mparser(object):
     def p_expression(self, p):
         """expression : const
                       | id
+                      | ref
                       | vector
                       | matrix_operation
                       | matrix_function
@@ -259,9 +260,9 @@ class Mparser(object):
 
 
     def p_matrix_function(self, p):
-        """matrix_function : ZEROS '(' expression ')'
-                           | ONES '(' expression ')'
-                           | EYE  '(' expression ')' """
+        """matrix_function : ZEROS '(' expressions ')'
+                           | ONES '(' expressions ')'
+                           | EYE  '(' expressions ')' """
 
         p[0] = AST.Matrix_function(p[1], p[3])
 

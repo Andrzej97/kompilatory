@@ -1,9 +1,9 @@
 #!/usr/bin/python
 
 # co jest jeszcze do poprawy:
-# popScope powinien usuwac odpowiednie pary  self.symbols
+# DONE. popScope powinien usuwac odpowiednie pary  self.symbols
 # przyglądnąć się self.visitVariable, zeby to wszystko ujednolicic i upewnic sie, ze dziala
-# zrobić tak, żeby wszystkie przykłady Kuty działały
+# zrobić tak, żeby wszystkie przykłady Kuty działały - sprobowac wprowadzic wieloargumentowe zeros, ones, eyes
 # wszystie zbedne komentarze usunac
 
 from SymbolTable import SymbolTable
@@ -82,7 +82,7 @@ class TypeChecker(NodeVisitor):
         array_to_print = self.visit(node.expr)
         for elem in array_to_print:
             if elem not in ('int','float','string'):
-                print("CANNOT PRINT", node.expr)
+                print("Error: CANNOT PRINT", node.expr, "which type is:", elem)
 
 # still to develop
 # zastanowic sie, przetestowac czy dla 'ref' wszystko tez bedzie dzialac
@@ -234,10 +234,10 @@ class TypeChecker(NodeVisitor):
         op    = node.op;
         if type1 not in ('int','float','string') or type2 not in ('int','float','string'):
             if type1 != type2:
-                print("TYPE MISMATCH IN BIN EXPR", type1, op, type2, " here: ", node.left, op, node.right)
+                print("Error: TYPE MISMATCH IN BIN EXPR", type1, op, type2, " here: ", node.left, op, node.right)
                 return 'wrong_bin_expr'
         elif self.returnedType[type1][type2][op] == 'err':
-            print("TYPE MISMATCH IN BIN EXPR", type1, op, type2, " here: ", node.left, op, node.right)
+            print("Error: TYPE MISMATCH IN BIN EXPR", type1, op, type2, " here: ", node.left, op, node.right)
             self.error_found = 1;
             return self.returnedType[type1][type2][op]
 
@@ -246,10 +246,10 @@ class TypeChecker(NodeVisitor):
         type1 = self.symbolTable.get(str(node.left))
         type2 = self.symbolTable.get(str(node.right))
         if self.returnedTypeRelative[type1][type2] == 'err':
-            print("TYPE MISMATCH IN CONDITION:", type1, node.op, type2, 'here:', node.left, node.op, node.right)
+            print("Error: TYPE MISMATCH IN CONDITION:", type1, node.op, type2, 'here:', node.left, node.op, node.right)
         if self.returnedTypeRelative[type1][type2] != 'int':
             # print(self.returnedTypeRelative[type1][type2])
-            print("CONDITION MUST BE INT")
+            print("Error: CONDITION MUST BE INT")
 
     def visit_Variable(self, node):
         return self.symbolTable.get(str(node.ID))
@@ -280,5 +280,10 @@ class TypeChecker(NodeVisitor):
 
     def visit_Matrix_function(self, node):
         size = node.arg
-        return str(size) + 'x' + str(size) + 'xint'
+        # print("node.arg:")
+        matrix_type = ""
+        for dimension in node.arg.exprs:
+            # print(dimension)
+            matrix_type += str(dimension) + 'x'
+        return matrix_type + 'int'
     
