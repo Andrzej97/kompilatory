@@ -60,7 +60,7 @@ class Interpreter(object):
     current_function = '*'
 
     global_mem = MemoryStack(Memory())
-    function_mem = MemoryStack()
+    # function_mem = MemoryStack()
     # function_ptr = FunctionPointer()    
 
     bin_op = {
@@ -145,7 +145,9 @@ class Interpreter(object):
             # print("iid:", iid)
             # print("node.id.accept(self):", node.id.accept(self))
             # print("type(node.id.accept(self)):", type(node.id.accept(self)))
+            # print("accept on id")
             left_value = node.id.accept(self)
+            # print("left_value:", left_value)
             if(left_value is not None):
                 # print(node.oper)
                 # print("type(node.oper)", type(node.oper))
@@ -161,7 +163,12 @@ class Interpreter(object):
                 elif str(node.oper)[0] == '/':
                     self.global_mem.set(iid, value / left_value)
                 else:
-                    self.global_mem.set(iid, value)
+                    if self.global_mem.get(iid) is not None:
+                        # print("set")
+                        self.global_mem.set(iid, value)
+                    else:
+                        # print("insert")
+                        self.global_mem.insert(iid, value)
             else:
                 # id = str(node.id)
                 # print("assignment: id:", id)
@@ -169,22 +176,25 @@ class Interpreter(object):
                 # print("assignment: type(iid):", type(iid))
                 # print("assignment global set node.id:", iid, "value:", value)
                 # self.global_mem.set(iid, value)
-                self.global_mem.set(iid, value)
+                # print("assignment, insertion:")
+                self.global_mem.insert(iid, value)
         else:
 
             # print("assignment: ref case: id", node.id.id)
-            ref_matrix = []
-            if(self.function_mem.get(str(node.id.id), True) is not None):
-                ref_matrix =  self.function_mem.get(str(node.id.id))
-            else:
-                ref_matrix = self.global_mem.get(str(node.id.id))
+            # ref_matrix = []
+            # if(self.global_mem.get(str(node.id.id), True) is not None):
+            #     ref_matrix =  self.global_mem.get(str(node.id.id))
+            # else:
+            #     ref_matrix = self.global_mem.get(str(node.id.id))
+            # ref_matrix =  self.global_mem.get(str(node.id.id))
             # print("ref_matrix:", ref_matrix)
             # print("ref_matrix type: ", type(ref_matrix))
-            ref_vector = node.id.vector.accept(self)
+            # ref_vector = node.id.vector.accept(self)
             # print("assignment: ref_vector", ref_vector)
             # print("type(ref_vector)", type(ref_vector))
             # ref_matrix[0][0] = 1;
             # only few dimensions served:
+            (ref_matrix, ref_vector) = node.id.accept(self)
             if len(ref_vector) == 1:
                 ref_matrix[ref_vector[0]] = value;
             elif len(ref_vector) == 2:
@@ -195,6 +205,190 @@ class Interpreter(object):
                 ref_matrix[ref_vector[0]][ref_vector[1]][ref_vector[2]][ref_vector[3]] = value;
 
         return None
+
+    @when(AST.Ref)
+    def visit(self, node):
+        ref_matrix = self.global_mem.get(str(node.id))
+        ref_vector = node.vector.accept(self)
+        return (ref_matrix, ref_vector)
+
+
+
+    @when(AST.Vector)
+    def visit(self, node):
+        # print("vector", node.expressions.accept(self))
+        return node.expressions.accept(self)
+
+
+
+
+    @when(AST.Expressions)
+    def visit(self, node):
+        args = []
+        # print("in AST.Expressions", node.exprs)
+        for a in node.exprs:
+            args.append(a.accept(self))
+        return args
+
+
+
+
+    @when(AST.Choice)
+    def visit(self, node):
+        # print("interpreter ast.choice")
+        condition_value = node.cond.accept(self)
+        # print("choice: condition_value:", condition_value)
+        if(condition_value):
+            node.inst1.accept(self)
+        elif(node.inst2 is not None):
+            # print("Choice, elif")
+            # print("choice: elif: node.inst2:", node.inst2)
+            # print("choice: elif: type(node.inst2):", type(node.inst2))
+            node.inst2.accept(self)
+
+
+
+    @when(AST.While)
+    def visit(self, node):
+        while(node.cond.accept(self)):
+            try:
+                node.stmt.accept(self)
+            except BreakException:
+                break
+            except ContinueException:
+                continue
+
+
+    @when(AST.For)
+    def visit(self, node):
+        # start = node.range.range_from.accept(self)
+        # print("start:", start)
+        # end = node.range.range_to.accept(self)
+        # print("end:", end)
+        # iterator = str(node.id)
+        (start, end) = node.range.accept(self)
+        self.global_mem.insert(str(node.id), start)
+        for i in range(start, end + 1):
+            self.global_mem.set(str(node.id), i)
+            try:
+                node.inst.accept(self)
+            except BreakException:
+                break
+            except ContinueException:
+                continue
+        # while(node.cond.accept(self)):
+        #     try:
+        #         node.inst.accept(self)
+        #     except BreakException:
+        #         break
+        #     except ContinueException:
+        #         continue
+
+    @when(AST.Range)
+    def visit(self, node):
+        start = node.range_from.accept(self)
+        end = node.range_to.accept(self)
+        return (start, end)
+
+
+
+    @when(AST.Return)
+    def visit(self, node):
+        value = node.ret.accept(self)
+        if type(value) == list:
+            value = self.global_mem.get(value[0])
+        raise ReturnValueException(value)
+
+    @when(AST.Continue)
+    def visit(self, node):
+        raise ContinueException
+
+    @when(AST.Break)
+    def visit(self, node):
+        raise BreakException
+
+
+    @when(AST.ComInstructions)
+    def visit(self, node):
+
+        self.global_mem.push(Memory())
+
+        try:
+            node.instrs.accept(self)
+        except ReturnValueException as r_ex:
+            self.global_mem.pop()
+            raise ReturnValueException(r_ex.value)
+        except BreakException as b_ex:
+            self.global_mem.pop()
+            raise BreakException
+        except ContinueException as c_ex:
+            self.global_mem.pop()
+            raise ContinueException
+
+        self.global_mem.pop()
+
+
+    @when(AST.Const)
+    def visit(self, node):
+        return node.value
+        # print(node.value)
+        # if node.value.isdigit():
+        #     return int(node.value)
+        # elif node.value.replace(".","",1).isdigit():
+        #     return float(node.value)
+        # else:
+        #     return str(node.value)
+
+    @when(AST.BinExpr)
+    def visit(self, node):
+        left = node.left.accept(self)
+        right = node.right.accept(self)        
+        return self.bin_op[node.op](left, right)
+
+
+    @when(AST.Condition)
+    def visit(self,node):
+        # print("interpreter: ast.condition")
+        left = node.left.accept(self)
+        right = node.right.accept(self) 
+        # print("condition: left:", left) 
+        # print("condition: type(left):", type(left)) 
+        # print("condition: right:", right)  
+        # print("condition: type(right):", type(right))
+        # print("condition: node.op:", node.op)
+        # print("condition: type(node.op):", type(node.op)) 
+        # print("returned by condition: ", self.bin_op[node.op](left, right))     
+        return self.bin_op[node.op](left, right)
+
+
+
+
+    @when(AST.Variable)
+    def visit(self, node):
+        return self.global_mem.get(node.ID)
+        # if(self.function_mem.get(node.ID, True) is not None):
+        #     if type(self.function_mem.get(node.ID)) in (int,str,float):
+        #         return self.function_mem.get(node.ID)
+        #     return self.function_mem.get(node.ID).accept(self)
+        # else:
+        #     if type(self.global_mem.get(node.ID)) in (int,str,float):
+        #         return self.global_mem.get(node.ID)
+        #     return self.global_mem.get(node.ID).accept(self)
+        # if(self.global_mem.get(node.ID, True) is not None):
+        #     # if type(self.function_mem.get(node.ID)) in (int,str,float):
+        #     # print("variable, get")
+        #     return self.global_mem.get(node.ID)
+        #     # return self.function_mem.get(node.ID).accept(self)
+        # else:
+        #     # if type(self.global_mem.get(node.ID)) in (int,str,float):
+        #     # print("variable, get")
+        #     # print("variable, node.ID", node.ID)
+        #     # print("variable, get returns:", self.global_mem.get(node.ID))
+        #     return self.global_mem.get(node.ID)
+        #     # return self.global_mem.get(node.ID).accept(self)
+
+
+
 
 
     @when(AST.Matrix_function)
@@ -243,157 +437,10 @@ class Interpreter(object):
         return matrix
 
 
-    @when(AST.Vector)
-    def visit(self, node):
-        # print("vector", node.expressions.accept(self))
-        return node.expressions.accept(self)
-
-    @when(AST.Expressions)
-    def visit(self, node):
-        args = []
-        # print("in AST.Expressions", node.exprs)
-        for a in node.exprs:
-            args.append(a.accept(self))
-        return args
-
-
-    @when(AST.Const)
-    def visit(self, node):
-        return node.value
-        # print(node.value)
-        # if node.value.isdigit():
-        #     return int(node.value)
-        # elif node.value.replace(".","",1).isdigit():
-        #     return float(node.value)
-        # else:
-        #     return str(node.value)
 
 
 
-    @when(AST.Variable)
-    def visit(self, node):
-        # if(self.function_mem.get(node.ID, True) is not None):
-        #     if type(self.function_mem.get(node.ID)) in (int,str,float):
-        #         return self.function_mem.get(node.ID)
-        #     return self.function_mem.get(node.ID).accept(self)
-        # else:
-        #     if type(self.global_mem.get(node.ID)) in (int,str,float):
-        #         return self.global_mem.get(node.ID)
-        #     return self.global_mem.get(node.ID).accept(self)
-        if(self.function_mem.get(node.ID, True) is not None):
-            # if type(self.function_mem.get(node.ID)) in (int,str,float):
-            # print("variable, get")
-            return self.function_mem.get(node.ID)
-            # return self.function_mem.get(node.ID).accept(self)
-        else:
-            # if type(self.global_mem.get(node.ID)) in (int,str,float):
-            # print("variable, get")
-            # print("variable, node.ID", node.ID)
-            # print("variable, get returns:", self.global_mem.get(node.ID))
-            return self.global_mem.get(node.ID)
-            # return self.global_mem.get(node.ID).accept(self)
 
-
-
-    @when(AST.Choice)
-    def visit(self, node):
-        # print("interpreter ast.choice")
-        condition_value = node.cond.accept(self)
-        # print("choice: condition_value:", condition_value)
-        if(condition_value):
-            node.inst1.accept(self)
-        elif(node.inst2 is not None):
-            # print("Choice, elif")
-            # print("choice: elif: node.inst2:", node.inst2)
-            # print("choice: elif: type(node.inst2):", type(node.inst2))
-            node.inst2.accept(self)
-
-
-    @when(AST.Condition)
-    def visit(self,node):
-        # print("interpreter: ast.condition")
-        left = node.left.accept(self)
-        right = node.right.accept(self) 
-        # print("condition: left:", left) 
-        # print("condition: type(left):", type(left)) 
-        # print("condition: right:", right)  
-        # print("condition: type(right):", type(right))
-        # print("condition: node.op:", node.op)
-        # print("condition: type(node.op):", type(node.op)) 
-        # print("returned by condition: ", self.bin_op[node.op](left, right))     
-        return self.bin_op[node.op](left, right)
-
-
-    @when(AST.ComInstructions)
-    def visit(self, node):
-
-        self.global_mem.push(Memory())
-
-        try:
-            node.instrs.accept(self)
-        except ReturnValueException as r_ex:
-            self.global_mem.pop()
-            raise ReturnValueException(r_ex.value)
-        except BreakException as b_ex:
-            self.global_mem.pop()
-            raise BreakException
-        except ContinueException as c_ex:
-            self.global_mem.pop()
-            raise ContinueException
-
-        self.global_mem.pop()
-
-
-
-    @when(AST.While)
-    def visit(self, node):
-        while(node.cond.accept(self)):
-            try:
-                node.stmt.accept(self)
-            except BreakException:
-                break
-            except ContinueException:
-                continue
-
-
-    @when(AST.For)
-    def visit(self, node):
-        start = node.range.range_from.accept(self)
-        # print("start:", start)
-        end = node.range.range_to.accept(self)
-        # print("end:", end)
-        # iterator = str(node.id)
-        for i in range(start, end + 1):
-            self.global_mem.set(str(node.id), i)
-            try:
-                node.inst.accept(self)
-            except BreakException:
-                break
-            except ContinueException:
-                continue
-        # while(node.cond.accept(self)):
-        #     try:
-        #         node.inst.accept(self)
-        #     except BreakException:
-        #         break
-        #     except ContinueException:
-        #         continue
-
-
-    @when(AST.Continue)
-    def visit(self, node):
-        raise ContinueException
-
-    @when(AST.Break)
-    def visit(self, node):
-        raise BreakException
-
-
-    @when(AST.BinExpr)
-    def visit(self, node):
-        left = node.left.accept(self)
-        right = node.right.accept(self)        
-        return self.bin_op[node.op](left, right)
 
 
 
@@ -455,14 +502,6 @@ class Interpreter(object):
     #             continue
             
 
-    # @when(AST.Return)
-    # def visit(self, node):
-    #     current_function = '*'
-    #     value = node.ret.accept(self)
-    #     if type(value) == list:
-    #         value = self.function_mem.get(value[0])
-
-    #     raise ReturnValueException(value)
 
 
 

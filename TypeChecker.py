@@ -81,7 +81,8 @@ class TypeChecker(NodeVisitor):
 # zrobic moze tak zeby wypisywalo, ze nie umie printowac macierzy - potrzebna integracja z typem jaki bedzie zwracac macierz
     def visit_Print(self, node):
         array_to_print = self.visit(node.expr)
-        for elem in array_to_print:
+        # print("array_to_print", array_to_print)
+        for elem in array_to_print: 
             if elem not in ('int','float','string'):
                 pass
                 # print("Error: CANNOT PRINT", node.expr, "which type is:", elem)
@@ -260,11 +261,11 @@ class TypeChecker(NodeVisitor):
     def visit_Condition(self, node):
         # if isinstance(, AST.Variable)
         # type1 = self.symbolTable.get(str(node.left))
-        print("condition: node.left", node.left)
-        print("condition: type(node.left)", type(node.left))
+        # print("condition: node.left", node.left)
+        # print("condition: type(node.left)", type(node.left))
         type1 = self.visit(node.left)
-        print("typechecker: condition: type1:", type1)
-        print("typechecker: condition: type(node.right):", type(node.right))
+        # print("typechecker: condition: type1:", type1)
+        # print("typechecker: condition: type(node.right):", type(node.right))
         # type2 = self.symbolTable.get(str(node.right))
         type2 = self.visit(node.right)
         # print("typechecker: condition: type2:", type2)

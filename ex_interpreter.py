@@ -13,6 +13,21 @@ print(x);
 y = "Luka";
 print(y);
 
+# # memory stack example:
+print("memory stack example:");
+n = 0;
+print(n);
+{
+	n = 1;
+	print(n);
+	{
+		n = 2;
+		print(n);
+	}
+	print(n);
+}
+print(n);
+
 # matrix ecamples
 print("matrix examples:");
 y = ones(3);
@@ -86,8 +101,8 @@ for i = a:b
 }	
 
 
-# # some advanced matrix examples? - dotOperations?
-# # ... TO DO
+# # # # some advanced matrix examples? - dotOperations?
+# # # # ... TO DO
 
 # some real algorithm example:
 print("Real algorithm example: GCD(20, 8) = ");
@@ -104,6 +119,6 @@ while(y != 0)
 		tmp = x;
 		x = y;
 		y = tmp - y;
-	}	
+	}
 }
 print(x);
