@@ -1,11 +1,5 @@
 #!/usr/bin/python
 
-# co jest jeszcze do poprawy:
-# DONE. popScope powinien usuwac odpowiednie pary  self.symbols
-# przyglądnąć się self.visitVariable, zeby to wszystko ujednolicic i upewnic sie, ze dziala
-# DONE. zrobić tak, żeby wszystkie przykłady Kuty działały - sprobowac wprowadzic wieloargumentowe zeros, ones, eyes
-# wszystie zbedne komentarze usunac
-
 from SymbolTable import SymbolTable
 import re
 import AST
@@ -27,6 +21,8 @@ class TypeChecker(NodeVisitor):
 
     errorOccured = False
     symbolTable = SymbolTable()
+    WRONG_MATRIX = "wrong_matrix"
+    WRONG_REF = "wrong_ref"
 
     returnedType = {'int' : {}, 'float' : {}, 'string' : {}}
     for i in returnedType.keys():
@@ -77,30 +73,25 @@ class TypeChecker(NodeVisitor):
         for instruction in node.instrs:
             self.visit(instruction)
 
-# still to develop
-# zrobic moze tak zeby wypisywalo, ze nie umie printowac macierzy - potrzebna integracja z typem jaki bedzie zwracac macierz
     def visit_Print(self, node):
         array_to_print = self.visit(node.expr)
-        # print("array_to_print", array_to_print)
         for elem in array_to_print: 
             if elem not in ('int','float','string'):
                 pass
                 # print("Error: CANNOT PRINT", node.expr, "which type is:", elem)
                 # self.errorOccured = True
 
-# still to develop
-# zastanowic sie, przetestowac czy dla 'ref' wszystko tez bedzie dzialac
     def visit_Assignment(self, node):
         id = self.visit(node.id)
         oper = self.visit(node.oper)[0]
         expr = self.visit(node.expr)
         if oper == '=':
             if isinstance(node.id, AST.Ref):
-                if id != 'wrong_ref' and id != expr:
+                if id != self.WRONG_REF and id != expr:
                     print('Error: MISMATCH in types in matrix reference assignment: left:', id, 'right:', expr)
                     self.errorOccured = True
             else:
-                if expr == "wrong_matrix":
+                if expr == self.WRONG_MATRIX:
                     print(" - ", node.id)
                 else:
                     self.symbolTable.put(str(node.id), expr)
@@ -131,13 +122,13 @@ class TypeChecker(NodeVisitor):
         if len(id_sizes) < len(ref_sizes):
             print('Error:\tmatrix wrong reference. Real size:', id_sizes, 'while referenced to:', ref_sizes)
             self.errorOccured = True
-            return "wrong_ref"
+            return self.WRONG_REF
         else:
             for i in range(0, len(ref_sizes)):
                 if ref_sizes[i] >= id_sizes[i]:
                     print('Error:\tmatrix wrong reference. Real size:', id_sizes, 'while referenced to:', ref_sizes)
                     self.errorOccured = True
-                    return "wrong_ref"
+                    return self.WRONG_REF
         dimensions_to_skip = len(ref_sizes)
         id_sizes = re.sub("[x]", " ", ref_type).split()
         ret_type = ''
@@ -157,7 +148,7 @@ class TypeChecker(NodeVisitor):
             if elem != first_type:
                 print("Error: Incompatible types in matrix:", elem_type, end='')
                 self.errorOccured = True
-                return "wrong_matrix"
+                return self.WRONG_MATRIX
         matrix_len = len(node.expressions.exprs)
         return str(matrix_len) + 'x' + first_type
 
@@ -241,11 +232,8 @@ class TypeChecker(NodeVisitor):
 
 
     def visit_BinExpr(self, node):
-        # print("binexpr: node.left:", node.left)
         type1 = self.visit(node.left)
         type2 = self.visit(node.right)
-        # print("binexpr: type1", type1)
-        # print("binexpr: type2", type2)
         op    = node.op;
         if type1 not in ('int','float','string') or type2 not in ('int','float','string'):
             if type1 != type2:
@@ -259,21 +247,12 @@ class TypeChecker(NodeVisitor):
 
 
     def visit_Condition(self, node):
-        # if isinstance(, AST.Variable)
-        # type1 = self.symbolTable.get(str(node.left))
-        # print("condition: node.left", node.left)
-        # print("condition: type(node.left)", type(node.left))
         type1 = self.visit(node.left)
-        # print("typechecker: condition: type1:", type1)
-        # print("typechecker: condition: type(node.right):", type(node.right))
-        # type2 = self.symbolTable.get(str(node.right))
         type2 = self.visit(node.right)
-        # print("typechecker: condition: type2:", type2)
         if self.returnedTypeRelative[type1][type2] == 'err':
             print("Error: TYPE MISMATCH IN CONDITION:", type1, node.op, type2, 'here:', node.left, node.op, node.right)
             self.errorOccured = True
         if self.returnedTypeRelative[type1][type2] != 'int':
-            # print(self.returnedTypeRelative[type1][type2])
             print("Error: CONDITION MUST BE INT")
             self.errorOccured = True
 
@@ -307,10 +286,8 @@ class TypeChecker(NodeVisitor):
 
     def visit_Matrix_function(self, node):
         size = node.arg
-        # print("node.arg:")
         matrix_type = ""
         for dimension in node.arg.exprs:
-            # print(dimension)
             matrix_type += str(dimension) + 'x'
         return matrix_type + 'int'
     
